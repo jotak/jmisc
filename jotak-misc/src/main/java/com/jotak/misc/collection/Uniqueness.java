@@ -21,12 +21,14 @@ public final class Uniqueness<T> {
     private final Collection<T> from;
     private Equalsor<T> equalsor;
     private Function<T, Integer> hashCode;
+    private boolean parallel;
 
     private Uniqueness(final Collection<T> from) {
         this.from = checkNotNull(from);
         // Default uniqueness: use parameter T's equals / hashCode
         equalsor = Object::equals;
         hashCode = Object::hashCode;
+        parallel = false;
     }
 
     /**
@@ -105,6 +107,16 @@ public final class Uniqueness<T> {
     }
 
     /**
+     * Use stream parallelism for multi-thread work
+     * 
+     * @return the builder
+     */
+    public Uniqueness<T> parallel() {
+        this.parallel = true;
+        return this;
+    }
+
+    /**
      * Get the result as a stream. All duplicates are removed from the input collection, according to the provided uniqueness constraints
      *
      * @return result as stream (non-terminated)
@@ -112,11 +124,19 @@ public final class Uniqueness<T> {
     public Stream<T> asStream() {
         checkNotNull(equalsor);
         checkNotNull(hashCode);
-        return from.stream()
-                .map(PrivateWrap::new)
-                .collect(Collectors.toSet())
-                .stream()
-                .map(Wrap::getWrapped);
+        if (parallel) {
+	        return from.parallelStream()
+	                .map(PrivateWrap::new)
+	                .collect(Collectors.toSet())
+	                .parallelStream()
+	                .map(Wrap::getWrapped);
+        } else {
+	        return from.stream()
+	                .map(PrivateWrap::new)
+	                .collect(Collectors.toSet())
+	                .stream()
+	                .map(Wrap::getWrapped);
+        }
     }
 
     /**

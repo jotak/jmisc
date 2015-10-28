@@ -41,6 +41,30 @@ public class UniquenessTest {
     }
 
     @Test
+    public void shouldHaveCustomUniquenessWithParallelStreaming() {
+        final List<Something> inputList = ImmutableList.of(
+                new Something(1, 2),
+                new Something(1, 2),
+                new Something(1, 3),
+                new Something(2, 2)
+        );
+
+        // Custom Uniqueness constraint: check field 1 only
+        final List<Something> uniqueField1 = Uniqueness.from(inputList)
+        		.parallel()
+                .constraintOn(ImmutableList.of(Something::getField1))
+                .asList();
+        assertThat(uniqueField1).hasSize(2).extracting("field1").containsOnly(1, 2);
+
+        // Custom Uniqueness constraint: check field 2 only
+        final List<Something> uniqueField2 = Uniqueness.from(inputList)
+        		.parallel()
+                .constraintOn(ImmutableList.of(Something::getField2))
+                .asList();
+        assertThat(uniqueField2).hasSize(2).extracting("field2").containsOnly(2, 3);
+    }
+
+    @Test
     public void shouldHaveCustomUniquenessOnAllFields() {
         final List<Something> inputList = ImmutableList.of(
                 new Something(1, 2),
